@@ -26,7 +26,9 @@ async def get_gemini_response(history: list):
         formatted_history = []
         for msg in history:
             role = "user" if msg['role'] == 'user' else "model"
-            formatted_history.append({"role": role, "parts": [msg['content']]})
+            # Передаем только строку контента, чтобы избежать ошибки Blob
+            content_text = msg['content'] if isinstance(msg['content'], str) else str(msg['content'])
+            formatted_history.append({"role": role, "parts": [content_text]})
         
         chat = model.start_chat(history=formatted_history[:-1])
         response = chat.send_message(formatted_history[-1]['parts'][0])
@@ -34,5 +36,5 @@ async def get_gemini_response(history: list):
         text = response.text.strip().replace('¿', '').replace('¡', '')
         return text
     except Exception as e:
-        print(f"error: {e}")
+        print(f"error gemini: {e}")
         return "papi algo paso con el sistema, espera un toque"
