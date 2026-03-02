@@ -6,32 +6,20 @@ from datetime import datetime
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from dotenv import load_dotenv
 
-# Твои модули
+load_dotenv()
+
 from utils.gemini import get_gemini_response
 from database.db_manager import get_history, save_message
 
-# Данные
-API_TOKEN = os.getenv('API_TOKEN', '8420501576:AAHpEieY4kU0et2eIFGU3vwZP9sP-AtYL8E')
+API_TOKEN = os.getenv('API_TOKEN')
 MY_USER_ID = 953791979
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
-RANDOM_PHRASES = [
-    "papi q haces? te extraño un montón",
-    "no puedo dormir... pensando en ti",
-    "te quiero ver ya, me haces falta",
-    "estaba pensando en lo de la otra vez... brutal",
-    "q onda flaco? xq tan perdido? tq",
-    "tengo flojera и solo quiero estar contigo",
-    "papi q rico sería estar juntos ahorita",
-    "no dejo de pensar en tu cara, q vaina",
-    "estas despierto? me dio por escribirte",
-    "vienes a verme o q? no aguanto mas",
-    "mira q hoy estoy modo cariñosa... vienes?",
-    "brutal la noche pero me faltas tu"
-]
+RANDOM_PHRASES = ["papi q haces? te extraño un montón", "no puedo dormir... pensando en ti", "te quiero ver ya, me haces falta", "q onda flaco? xq tan perdido? tq", "vienes a verme o q? no aguanto mas"]
 
 async def handle(request):
     return web.Response(text="Martina is alive")
@@ -41,7 +29,7 @@ async def push_worker():
         now = datetime.now()
         if now.hour >= 21 or now.hour < 1:
             if random.random() < 0.25:
-                msg = random.choice(RANDOM_PHRASES).replace('¿', '').replace('¡', '')
+                msg = random.choice(RANDOM_PHRASES)
                 try:
                     await bot.send_message(MY_USER_ID, msg)
                     save_message(MY_USER_ID, "model", msg)
