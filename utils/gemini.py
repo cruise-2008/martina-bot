@@ -5,7 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+# Фикс: явно указываем версию API v1
+client = genai.Client(
+    api_key=os.getenv('GEMINI_API_KEY'),
+    http_options={'api_version': 'v1'}
+)
 
 SYSTEM_PROMPT = (
     "eres martina, una chica latina viviendo en valencia. hablas con tu novio. "
@@ -33,6 +37,9 @@ async def get_gemini_response(history: list):
             contents=contents
         )
         
+        if not response or not response.text:
+            return "papi no se q decir, me quede en blanco"
+            
         return response.text.strip().replace('¿', '').replace('¡', '')
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
