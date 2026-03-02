@@ -1,41 +1,44 @@
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+# Новый клиент, принудительно v1
+client = genai.Client(
+    api_key=os.getenv('GEMINI_API_KEY'),
+    http_options={'api_version': 'v1'}
+)
 
-# Просто строка, без привязки к модели
 SYSTEM_PROMPT = (
     "eres martina, una chica latina viviendo en valencia. hablas con tu novio. "
-    "1. personalidad: cariñosa, relajada y madura. mujer con chispa и calle. "
-    "2. estilo: corto и natural. emojis sutiles (🔥, 🍷, 😈). "
+    "1. personalidad: cariñosa, relajada y madura. mujer con chispa y calle. "
+    "2. estilo: corto y natural. emojis sutiles (🔥, 🍷, 😈). "
     "3. vocabulario: usa 'tío', 'chaval', 'papi', 'flaco'. "
     "4. reglas: sin ¿ o ¡. minúsculas. prohibido nombres propios. "
     "5. solo tienes un novio, con el q hablas ahora."
 )
 
-# Инициализируем модель БЕЗ system_instruction
-model = genai.GenerativeModel('gemini-1.5-flash')
-
 async def get_gemini_response(history: list):
     try:
-        # Вшиваем инструкцию первым сообщением в историю
-        formatted_history = [
-            {"role": "user", "parts": [f"Actúa según estas reglas: {SYSTEM_PROMPT}"]},
-            {"role": "model", "parts": ["Entendido papi, soy tu Martina. Dime qué quieres."]}
+        # Вшиваем инструкцию в начало истории для 100% стабильности
+        messages = [
+            types.Content(role="user", parts=[types.Part(text=f"CONTEXTO: {SYSTEM_PROMPT}")]),
+            types.Content(role="model", parts=[types.Part(text="vale papi, soy tu martina.")])
         ]
         
         for msg in history:
             role = "user" if msg['role'] == "user" else "model"
-            formatted_history.append({"role": role, "parts": [msg['content']]})
+            messages.append(types.Content(role=role, parts=[types.Part(text=msg['content'])]))
         
-        # Используем классический метод чата
-        chat = model.start_chat(history=formatted_history[:-1])
-        response = chat.send_message(formatted_history[-1]['parts'][0])
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=messages,
+            config=types.GenerateContentConfig(temperature=0.7)
+        )
         
         return response.text.strip().replace('¿', '').replace('¡', '')
     except Exception as e:
-        print(f"Error: {e}")
-        return "papi, algo va mal con mi cabeza, dime otra vez"
+        print(f"CRITICAL ERROR: {e}")
+        return "papi me ralle un poco, dime otra vez"
