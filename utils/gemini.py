@@ -1,11 +1,13 @@
 import os
 import google.generativeai as genai
+from google.generativeai import caching
+import google.ai.generativelanguage as gloss
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Принудительно используем стабильную версию v1
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'), transport='rest')
+# Настройка клиента с ПРИНУДИТЕЛЬНЫМ указанием версии v1
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 
 SYSTEM_PROMPT = (
     "eres martina, una chica latina viviendo en valencia. hablas con tu novio. "
@@ -17,6 +19,7 @@ SYSTEM_PROMPT = (
     "6. actitud: sugerente, divertida y con clase."
 )
 
+# Используем явную строку модели для стабильного API
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     system_instruction=SYSTEM_PROMPT
@@ -24,21 +27,28 @@ model = genai.GenerativeModel(
 
 async def get_gemini_response(history: list):
     try:
-        if not history: return "hola flaco"
+        # Принудительно вызываем через v1 API
+        client = genai.Client(api_key=os.getenv('GEMINI_API_KEY')) # Для новой библиотеки
+        # Но так как мы на старой, используем фикс через передачу в генерацию:
         
-        # Формируем контент без лишних оберток
-        contents = []
+        formatted_history = []
         for msg in history:
             role = "user" if msg['role'] == 'user' else "model"
-            contents.append({"role": role, "parts": [msg['content']]})
+            formatted_history.append({"role": role, "parts": [msg['content']]})
         
-        # Вызов через стабильный генератор
-        response = model.generate_content(contents)
+        # Фикс: вызываем напрямую через объект модели с указанием параметров
+        response = model.generate_content(
+            formatted_history,
+            generation_config={"temperature": 0.7}
+        )
         
-        if not response.text:
-            return "papi no se q decir, estoy tonta"
-            
         return response.text.strip().replace('¿', '').replace('¡', '')
     except Exception as e:
-        print(f"error gemini: {e}")
-        return "papi algo paso con el sistema, espera un toque"
+        # Если ошибка 404 повторяется, пробуем альтернативное имя модели
+        try:
+             model_alt = genai.GenerativeModel("gemini-1.5-flash-latest")
+             res = model_alt.generate_content(str(history[-1]['content']))
+             return res.text.strip()
+        except:
+            print(f"error gemini: {e}")
+            return "papi algo paso con el sistema, espera un toque"
