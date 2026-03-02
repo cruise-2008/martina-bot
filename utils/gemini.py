@@ -16,17 +16,20 @@ SYSTEM_PROMPT = (
     "6. actitud: sugerente, divertida y con clase."
 )
 
+# Используем 1.5-flash, она работает у всех новых пользователей
 model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash",
+    model_name="gemini-1.5-flash",
     system_instruction=SYSTEM_PROMPT
 )
 
 async def get_gemini_response(history: list):
     try:
+        if not history:
+            return "hola flaco"
+            
         formatted_history = []
         for msg in history:
             role = "user" if msg['role'] == 'user' else "model"
-            # Передаем только строку контента, чтобы избежать ошибки Blob
             content_text = msg['content'] if isinstance(msg['content'], str) else str(msg['content'])
             formatted_history.append({"role": role, "parts": [content_text]})
         
