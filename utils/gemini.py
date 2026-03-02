@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Настройка API ключа
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+# Принудительно используем стабильную версию v1
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'), transport='rest')
 
 SYSTEM_PROMPT = (
     "eres martina, una chica latina viviendo en valencia. hablas con tu novio. "
@@ -17,9 +17,8 @@ SYSTEM_PROMPT = (
     "6. actitud: sugerente, divertida y con clase."
 )
 
-# Используем модель БЕЗ указания v1beta, библиотека сама выберет стабильный путь
 model = genai.GenerativeModel(
-    model_name="models/gemini-1.5-flash",
+    model_name="gemini-1.5-flash",
     system_instruction=SYSTEM_PROMPT
 )
 
@@ -27,15 +26,18 @@ async def get_gemini_response(history: list):
     try:
         if not history: return "hola flaco"
         
-        formatted_history = []
+        # Формируем контент без лишних оберток
+        contents = []
         for msg in history:
             role = "user" if msg['role'] == 'user' else "model"
-            content_text = msg['content'] if isinstance(msg['content'], str) else str(msg['content'])
-            formatted_history.append({"role": role, "parts": [content_text]})
+            contents.append({"role": role, "parts": [msg['content']]})
         
-        # Генерация контента напрямую (более надежно для 1.5-flash)
-        response = model.generate_content(formatted_history)
+        # Вызов через стабильный генератор
+        response = model.generate_content(contents)
         
+        if not response.text:
+            return "papi no se q decir, estoy tonta"
+            
         return response.text.strip().replace('¿', '').replace('¡', '')
     except Exception as e:
         print(f"error gemini: {e}")
