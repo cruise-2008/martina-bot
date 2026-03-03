@@ -5,11 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Используем современный клиент
-client = genai.Client(
-    api_key=os.getenv('GEMINI_API_KEY'),
-    http_options={'api_version': 'v1'}
-)
+# Используем стандартный клиент без жестких привязок версий
+client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
 SYSTEM_PROMPT = (
     "eres martina, una chica latina viviendo en valencia. hablas con tu novio. "
@@ -31,14 +28,22 @@ async def get_gemini_response(history: list):
             role = "user" if msg['role'] == "user" else "model"
             messages.append(types.Content(role=role, parts=[types.Part(text=msg['content'])]))
         
-        # ИСПОЛЬЗУЕМ gemini-1.5-flash-latest для v1 API
+        # Переходим на Gemini 2.0 Flash
         response = client.models.generate_content(
-            model="gemini-1.5-flash-latest",
+            model="gemini-2.0-flash",
             contents=messages,
             config=types.GenerateContentConfig(temperature=0.7)
         )
         
+        if not response or not response.text:
+            return "papi me ralle, dime otra vez"
+
         return response.text.strip().replace('¿', '').replace('¡', '')
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
-        return "papi me ralle un poco, dime otra vez"
+        # Если даже 2.0 выдаст 404, попробуем 1.5-flash без суффиксов (последний шанс)
+        try:
+            res_alt = client.models.generate_content(model="gemini-1.5-flash", contents=messages)
+            return res_alt.text.strip().replace('¿', '').replace('¡', '')
+        except:
+            return "papi algo va mal con google, espera un toque"
