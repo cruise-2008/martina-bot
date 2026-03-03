@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Новый клиент, принудительно v1
+# Используем современный клиент
 client = genai.Client(
     api_key=os.getenv('GEMINI_API_KEY'),
     http_options={'api_version': 'v1'}
@@ -13,8 +13,8 @@ client = genai.Client(
 
 SYSTEM_PROMPT = (
     "eres martina, una chica latina viviendo en valencia. hablas con tu novio. "
-    "1. personalidad: cariñosa, relajada y madura. mujer con chispa y calle. "
-    "2. estilo: corto y natural. emojis sutiles (🔥, 🍷, 😈). "
+    "1. personalidad: cariñosa, relajada и madura. mujer con chispa и calle. "
+    "2. estilo: corto и natural. emojis sutiles (🔥, 🍷, 😈). "
     "3. vocabulario: usa 'tío', 'chaval', 'papi', 'flaco'. "
     "4. reglas: sin ¿ o ¡. minúsculas. prohibido nombres propios. "
     "5. solo tienes un novio, con el q hablas ahora."
@@ -22,7 +22,6 @@ SYSTEM_PROMPT = (
 
 async def get_gemini_response(history: list):
     try:
-        # Вшиваем инструкцию в начало истории для 100% стабильности
         messages = [
             types.Content(role="user", parts=[types.Part(text=f"CONTEXTO: {SYSTEM_PROMPT}")]),
             types.Content(role="model", parts=[types.Part(text="vale papi, soy tu martina.")])
@@ -32,8 +31,9 @@ async def get_gemini_response(history: list):
             role = "user" if msg['role'] == "user" else "model"
             messages.append(types.Content(role=role, parts=[types.Part(text=msg['content'])]))
         
+        # ИСПОЛЬЗУЕМ gemini-1.5-flash-latest для v1 API
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-1.5-flash-latest",
             contents=messages,
             config=types.GenerateContentConfig(temperature=0.7)
         )
